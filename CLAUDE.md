@@ -109,6 +109,13 @@ Mesmo padrão do Robo_RFID, por continuidade de marca:
 - **Sempre entregar o conteúdo completo do arquivo, pronto para colar** — nunca snippets parciais ou diffs, já que o deploy do dashboard é manual via Notepad + editor web do GitHub.
 - `toNum()` no JS: nunca reprocessar um valor que já é `number` como se fosse string de planilha (causa bug de ponto flutuante) — sempre checar `typeof v === 'number'` antes.
 
+## Aprendizados e regras críticas específicas do Peso_RFID (NÃO IGNORAR)
+
+- **Nomes de cliente duplicados na tela `ListagemLavanderia.aspx` representam unidades distintas, não erro de captura.** Confirmado em produção: `"SPA CENTRO"` aparece 4x, `"GNOSIS - CAPS MSS"` e `"Rio Saúde - UPA CIDADE DE DEUS"` aparecem 2x cada, todos os dias, cada linha com peso próprio e frequentemente diferente (ex: uma linha com `0` e outra com `15,6`). É o mesmo tipo de problema do cliente **PBBY** no Robo_RFID (duas tabelas conflitantes), mas aqui a solução é **somar** os valores das linhas com nome idêntico dentro da mesma rodada (`groupby(['Data Extração','Cliente','Data']).sum()`) — nunca usar `drop_duplicates` direto por `Cliente+Data`, ou perde dados reais silenciosamente. Isso está implementado em `refinador_peso.py`.
+- **Distinção entre duas fontes de "duplicata"**: (1) linhas com nome idêntico na MESMA rodada → são unidades reais, **somar**; (2) o mesmo Cliente+Data aparecendo em rodadas diferentes (execuções do `peso.py` em dias diferentes) → é correção retroativa, **manter só a mais recente** (`keep='last'` ordenado por `Data Extração`). `refinador_peso.py` faz a soma primeiro, dedup depois — nessa ordem.
+- **Números na tabela `#tabpedidos` não usam separador de milhar** (ex: `"246476,3"`, não `"246.476,3"`), diferente do que se poderia assumir por padrão BR — `parse_num()`/`normalizar_numero()` tratam os dois formatos por segurança, mas não assuma que existe separador de milhar ao depurar valores.
+- **Navegação direta por URL funciona**: `ListagemLavanderia.aspx?dia=DD/MM/AAAA` não exige clicar em menus — a sessão de login (cookies) é suficiente, mesmo padrão de `robo.py` para Evasão.
+
 ## Estado atual
 
 ### Concluído
@@ -123,11 +130,15 @@ Mesmo padrão do Robo_RFID, por continuidade de marca:
 - Rodada de produção completa executada (dias 01 a 13/07/2026): 1781 linhas gravadas em `Peso_Bruto` (13 dias × 137 clientes).
 - Repositório Git local inicializado, primeiro commit feito (`.gitignore`, `CLAUDE.md`, `peso.py` — `.env` e `credenciais.json` ficam de fora, protegidos pelo `.gitignore`).
 - Repositório remoto criado no GitHub (**público**): `https://github.com/guilhermebertoldi05-ship-it/Controle-de-Peso-SG` — commit inicial já enviado (push).
+- `refinador_peso.py` escrito, testado e corrigido (achou e tratou o problema de nomes duplicados acima). Gerou a aba `Peso_Refinado` com 1716 registros únicos (132 clientes reais × 13 dias), `% Relave` já calculado.
+- Planilha `Base_Dados_Peso` publicada na web (Arquivo → Compartilhar → Publicar na Web). ID de publicação: `2PACX-1vSjoyl4aASTVx9oeiH7bokklhD5km64glWu0JLpXWSkyIC_3jRh1d_1JG416fykB8szhFLr6CnfptFK`. GID de `Peso_Refinado`: `882438551`.
+- `index.html` escrito (dashboard "Mapa Controle de Peso"): 4 cards de resumo (peso sujo mês atual/anterior/retrasado/dia anterior), gráfico de blocos semanais (mês atual vs anterior, Chart.js) e tabela de detalhamento por cliente navegável pelos últimos 7 dias com badge de % Relave (verde ≤3% / amarelo 3-6% / vermelho >6%, confirmado com Guilherme). Toda a agregação (mês, blocos, dia anterior) é feita client-side em JS a partir de `Peso_Refinado` — não há abas pré-agregadas extras no Sheets, por decisão consciente de não criar abstração antes de ver o dashboard funcionando.
+- Testado servindo localmente (`python -m http.server`) e inspecionando via browser automatizado: valores dos cards batem exatamente com os totais reais mostrados na tela do sistema legado (ex: Peso Sujo Mês Atual = 226.845,4 kg, idêntico ao "TOTAL" da tela ao vivo). Tabela de detalhamento também conferida linha a linha.
+- **Decisão de UX**: a aba de dia ativa por padrão na tabela de detalhamento abre em "ontem" (não "hoje"), pelo mesmo motivo do card "Dia Anterior" — o robô roda de madrugada e "hoje" costuma estar vazio no momento da extração.
+- Commit e push feitos (`refinador_peso.py`, `index.html`) no repositório `Controle-de-Peso-SG`.
 
 ### Pendente / em aberto
-- Escrever `refinador_peso.py`.
-- Escrever `index.html` (dashboard).
-- Habilitar publicação na web da planilha (Arquivo → Compartilhar → Publicar na Web) quando as abas agregadas existirem.
-- Confirmar cor/escala exata do badge de % Relave (verde/amarelo/vermelho) em relação à meta de 3%.
-- Confirmar horário ideal de agendamento no Task Scheduler (depende do card "Dia Anterior" ter dado completo).
-- Configurar GitHub Pages no repositório `Controle-de-Peso-SG` quando o `index.html` existir.
+- Configurar GitHub Pages no repositório `Controle-de-Peso-SG` (Settings → Pages → branch `master`) para publicar o `index.html` como site estático.
+- Escrever `geral_peso.bat` (orquestrador `peso.py` + `refinador_peso.py`) e agendar no Task Scheduler.
+- Confirmar horário ideal de agendamento no Task Scheduler (depende do card "Dia Anterior" ter dado completo — rodar de madrugada deixa "hoje" vazio na tabela de detalhamento, já contornado com o default em "ontem", mas vale reavaliar o horário mesmo assim).
+- Rodar `peso.py` diariamente por mais alguns dias para acumular histórico e validar as comparações de mês anterior/retrasado (hoje ainda estão zeradas, só há dados de julho/2026).
