@@ -119,13 +119,15 @@ Mesmo padrão do Robo_RFID, por continuidade de marca:
 - `credenciais.json` e `.env` copiados do Robo_RFID (mesma conta de serviço, mesmo login do sistema).
 - `.gitignore` criado (protege `.env` e `credenciais.json` de irem pro Git).
 - Planilha `Base_Dados_Peso` criada manualmente por Guilherme, compartilhada com a conta de serviço, aba `Peso_Bruto` configurada com cabeçalho.
-- `peso.py` escrito e testado com trava de 1 dia (dia 01/07/2026): 137 clientes capturados, valores conferidos batendo com a tela real do sistema. Trava de teste desativada (comentada) — pronto para rodar a extração completa do mês.
+- `peso.py` escrito e testado com trava de 1 dia (dia 01/07/2026): 137 clientes capturados, valores conferidos batendo com a tela real do sistema. Trava de teste desativada (comentada) — rodou em produção completa depois.
+- Rodada de produção completa executada (dias 01 a 13/07/2026): 1781 linhas gravadas em `Peso_Bruto` (13 dias × 137 clientes).
+- Repositório Git local inicializado, primeiro commit feito (`.gitignore`, `CLAUDE.md`, `peso.py` — `.env` e `credenciais.json` ficam de fora, protegidos pelo `.gitignore`).
+- Repositório remoto criado no GitHub (**público**): `https://github.com/guilhermebertoldi05-ship-it/Controle-de-Peso-SG` — commit inicial já enviado (push).
 
 ### Pendente / em aberto
-- Rodar `peso.py` em produção completa (todos os dias do mês até hoje) para popular `Peso_Bruto` de verdade.
 - Escrever `refinador_peso.py`.
 - Escrever `index.html` (dashboard).
 - Habilitar publicação na web da planilha (Arquivo → Compartilhar → Publicar na Web) quando as abas agregadas existirem.
 - Confirmar cor/escala exata do badge de % Relave (verde/amarelo/vermelho) em relação à meta de 3%.
 - Confirmar horário ideal de agendamento no Task Scheduler (depende do card "Dia Anterior" ter dado completo).
-- Criar repositório Git separado e configurar GitHub Pages para este projeto.
+- Configurar GitHub Pages no repositório `Controle-de-Peso-SG` quando o `index.html` existir.
