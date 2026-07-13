@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Controle de Peso - São Geraldo</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8eef5;
+    --border: #d0dce8;
+    --blue: #1a6fb5;
+    --blue-dark: #0d4f8a;
+    --blue-light: #e8f2fc;
+    --green: #3da84a;
+    --green-light: #e6f7e8;
+    --text: #1a2a3a;
+    --text-muted: #5a7a96;
+    --red: #e53935;
+    --red-light: #fdecea;
+    --yellow: #f5a623;
+    --yellow-light: #fef8ec;
+    --orange: #f07130;
+    --shadow: 0 2px 12px rgba(26,111,181,0.10);
+    --shadow-md: 0 4px 24px rgba(26,111,181,0.13);
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: radial-gradient(circle at 20% 20%, rgba(26,111,181,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(61,168,74,0.04) 0%, transparent 50%); pointer-events: none; z-index: 0; }
+  header { position: relative; z-index: 10; background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 72px; box-shadow: var(--shadow); }
+  .header-logo { display: flex; align-items: center; gap: 14px; }
+  .header-logo-mark { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--blue), var(--green)); display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 16px; flex-shrink: 0; }
+  .header-logo-divider { width: 2px; height: 36px; background: linear-gradient(180deg, var(--blue), var(--green)); border-radius: 2px; }
+  .header-title h1 { font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 800; color: var(--blue-dark); letter-spacing: -0.3px; line-height: 1.2; }
+  .header-title p { font-size: 10px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; }
+  .header-data-badge { background: var(--green-light); color: var(--green); border: 1px solid rgba(61,168,74,0.2); border-radius: 100px; padding: 7px 16px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px; }
+  .header-data-badge.stale { background: var(--yellow-light); color: var(--yellow); border-color: rgba(245,166,35,0.3); }
+  .header-data-badge.very-stale { background: var(--red-light); color: var(--red); border-color: rgba(229,57,53,0.3); }
+  .header-data-badge span.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  main { position: relative; z-index: 10; padding: 28px 40px; max-width: 1600px; margin: 0 auto; }
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .section-header h2 { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 800; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+  .section-header .line { flex: 1; height: 1px; background: var(--border); }
+  .mes-indicator { display: inline-flex; align-items: center; gap: 8px; background: var(--blue-light); border: 1px solid rgba(26,111,181,0.2); border-radius: 100px; padding: 8px 18px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; color: var(--blue); letter-spacing: 0.5px; margin-bottom: 20px; }
+  .mes-indicator span { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+  .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 26px; position: relative; overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.2s, transform 0.2s; }
+  .card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--blue), var(--green)); }
+  .card.card-muted::after { background: linear-gradient(90deg, var(--text-muted), var(--border)); }
+  .card.card-yellow::after { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+  .card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
+  .card-value { font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; line-height: 1; color: var(--blue); }
+  .card-sub { font-size: 11px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+  .charts-row { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
+  .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; box-shadow: var(--shadow); }
+  .chart-title { font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+  .chart-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 1.2px; text-transform: uppercase; font-weight: 600; margin-bottom: 20px; }
+  .chart-wrap { position: relative; height: 260px; }
+  .dia-tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 1px solid var(--border); background: var(--surface2); flex-wrap: wrap; border-radius: var(--radius) var(--radius) 0 0; }
+  .dia-tab { padding: 10px 18px; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; transition: all 0.2s; position: relative; bottom: -1px; text-align: center; }
+  .dia-tab .dia-sub { display: block; font-weight: 500; opacity: 0.8; font-size: 9px; margin-top: 2px; }
+  .dia-tab:hover { color: var(--blue); }
+  .dia-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 28px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: linear-gradient(135deg, var(--blue-dark), var(--blue)); }
+  th { padding: 14px 16px; text-align: center; font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.9); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--blue-light); }
+  tbody tr.linha-total { background: var(--surface2); font-weight: 800; }
+  tbody tr.linha-total:hover { background: var(--surface2); }
+  td { padding: 12px 16px; color: var(--text); font-weight: 500; text-align: center; }
+  .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+  #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 20px; }
+  .loader-text { font-family: 'Montserrat', sans-serif; font-size: 13px; color: var(--blue); letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+  .loader-bar { width: 200px; height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .loader-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--green)); border-radius: 3px; animation: load 1.5s ease-in-out infinite; }
+  @keyframes load { 0% { width: 0%; margin-left: 0; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
+  .empty-state { padding: 48px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  @media (max-width: 900px) {
+    header { padding: 0 20px; } main { padding: 20px; }
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="loader-text">Carregando dados</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+<header>
+  <div class="header-logo">
+    <div class="header-logo-mark">SG</div>
+    <div class="header-logo-divider"></div>
+    <div class="header-title">
+      <h1>São Geraldo Service</h1>
+      <p>Mapa Controle de Peso</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-data-badge" id="dados-freshness"><span class="dot"></span> Carregando...</div>
+  </div>
+</header>
+<main>
+  <div id="mes-indicator" class="mes-indicator"><span></span> Mês de referência: carregando...</div>
+
+  <div class="section-header"><h2>Resumo — Peso Sujo</h2><div class="line"></div></div>
+  <div class="cards-grid" id="cards-resumo"></div>
+
+  <div class="section-header"><h2>Blocos Semanais do Mês (Peso Sujo)</h2><div class="line"></div></div>
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">Mês Atual vs. Mês Anterior, por janela de ~7 dias</div>
+      <div class="chart-sub">Blocos: 1-7 · 8-14 · 15-21 · 22-fim</div>
+      <div class="chart-wrap"><canvas id="chart-blocos"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-header"><h2>Detalhamento por Cliente — Últimos 7 Dias</h2><div class="line"></div></div>
+  <div class="dia-tabs" id="dia-tabs"></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cliente</th><th>Peso Limpo (kg)</th><th>Peso Sujo (kg)</th><th>Peso Relave (kg)</th><th>% Relave</th></tr></thead>
+      <tbody id="detalhe-tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const SHEET_ID = '2PACX-1vSjoyl4aASTVx9oeiH7bokklhD5km64glWu0JLpXWSkyIC_3jRh1d_1JG416fykB8szhFLr6CnfptFK';
+const GID_PESO_REFINADO = '882438551';
+const CSV_URL = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub?output=csv&gid=${GID_PESO_REFINADO}`;
+
+const meses_pt = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const dias_semana_pt = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let registros = [];
+let hoje = null;
+// Abre por padrão em "ontem" (índice 5 de 7) — "hoje" costuma estar praticamente
+// vazio, já que o robô roda logo após a meia-noite e o dia mal começou.
+let diaAtivoIdx = 5;
+let chartBlocos;
+
+function parseCSVLine(line) {
+  const result = []; let current = ''; let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQuotes = !inQuotes; }
+    else if (line[i] === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += line[i]; }
+  }
+  result.push(current); return result;
+}
+
+function parseCSVText(txt) {
+  const lines = txt.trim().split('\n');
+  const headers = parseCSVLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(l => {
+    const vals = parseCSVLine(l); const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+function toNum(v) {
+  if (typeof v === 'number') return v;
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function dataStrParaObj(dataStr) {
+  const [d, m, a] = dataStr.split('/');
+  return new Date(parseInt(a), parseInt(m) - 1, parseInt(d));
+}
+
+function objParaDataStr(dt) {
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+}
+
+function anoMesDeObj(dt) {
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+}
+
+function fmtKg(v) {
+  return toNum(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' kg';
+}
+
+function fmtPct(v) {
+  return toNum(v).toFixed(2).replace('.', ',') + '%';
+}
+
+function fmtMesLabel(anoMesStr) {
+  const [ano, mes] = anoMesStr.split('-');
+  return meses_pt[parseInt(mes) - 1] + '/' + String(ano).slice(-2);
+}
+
+function corRelave(pct) {
+  const v = toNum(pct);
+  if (v <= 3) return 'badge-green';
+  if (v <= 6) return 'badge-yellow';
+  return 'badge-red';
+}
+
+function renderDataFreshness() {
+  const badge = document.getElementById('dados-freshness');
+  if (!hoje) {
+    badge.className = 'header-data-badge stale';
+    badge.innerHTML = '<span class="dot"></span> Sem dados';
+    return;
+  }
+  const agora = new Date();
+  const diffDias = Math.floor((agora - hoje) / (1000 * 60 * 60 * 24));
+  let texto, cls;
+  if (diffDias <= 1) {
+    texto = `Atualizado — último dado ${objParaDataStr(hoje)}`;
+    cls = '';
+  } else if (diffDias <= 3) {
+    texto = `Último dado: ${objParaDataStr(hoje)} (${diffDias} dias atrás)`;
+    cls = 'stale';
+  } else {
+    texto = `Desatualizado — último dado ${objParaDataStr(hoje)} (${diffDias} dias atrás)`;
+    cls = 'very-stale';
+  }
+  badge.className = 'header-data-badge' + (cls ? ' ' + cls : '');
+  badge.innerHTML = `<span class="dot"></span> ${texto}`;
+}
+
+function somaSujoPorAnoMes(anoMesStr) {
+  return registros.filter(r => r.anoMes === anoMesStr).reduce((s, r) => s + r.sujo, 0);
+}
+
+function somaSujoPorData(dataStr) {
+  return registros.filter(r => r.dataStr === dataStr).reduce((s, r) => s + r.sujo, 0);
+}
+
+function renderCards() {
+  const mesAtualObj = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const mesAnteriorObj = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const mesRetrasadoObj = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
+  const diaAnteriorObj = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 1);
+
+  const mesAtualStr = anoMesDeObj(mesAtualObj);
+  const mesAnteriorStr = anoMesDeObj(mesAnteriorObj);
+  const mesRetrasadoStr = anoMesDeObj(mesRetrasadoObj);
+  const diaAnteriorStr = objParaDataStr(diaAnteriorObj);
+
+  document.getElementById('mes-indicator').innerHTML =
+    `<span></span> Mês de referência: ${fmtMesLabel(mesAtualStr)}`;
+
+  const cards = [
+    { label: `Peso Sujo — ${fmtMesLabel(mesAtualStr)} (Mês Atual)`, valor: somaSujoPorAnoMes(mesAtualStr), classe: '' },
+    { label: `Peso Sujo — ${fmtMesLabel(mesAnteriorStr)} (Mês Anterior)`, valor: somaSujoPorAnoMes(mesAnteriorStr), classe: 'card-muted' },
+    { label: `Peso Sujo — ${fmtMesLabel(mesRetrasadoStr)} (Retrasado)`, valor: somaSujoPorAnoMes(mesRetrasadoStr), classe: 'card-muted' },
+    { label: `Peso Sujo — Dia Anterior (${diaAnteriorStr})`, valor: somaSujoPorData(diaAnteriorStr), classe: 'card-yellow' },
+  ];
+
+  document.getElementById('cards-resumo').innerHTML = cards.map(c => `
+    <div class="card ${c.classe}">
+      <div class="card-label">${c.label}</div>
+      <div class="card-value">${fmtKg(c.valor)}</div>
+    </div>`).join('');
+}
+
+function blocosDoMes(anoObj) {
+  const ano = anoObj.getFullYear();
+  const mes = anoObj.getMonth();
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+  return [
+    { ini: 1, fim: 7 },
+    { ini: 8, fim: 14 },
+    { ini: 15, fim: 21 },
+    { ini: 22, fim: ultimoDia },
+  ];
+}
+
+function somaSujoBloco(anoMesStr, ini, fim) {
+  return registros
+    .filter(r => r.anoMes === anoMesStr)
+    .filter(r => { const dia = r.dataObj.getDate(); return dia >= ini && dia <= fim; })
+    .reduce((s, r) => s + r.sujo, 0);
+}
+
+function renderBlocosSemanais() {
+  const mesAtualObj = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const mesAnteriorObj = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const mesAtualStr = anoMesDeObj(mesAtualObj);
+  const mesAnteriorStr = anoMesDeObj(mesAnteriorObj);
+
+  const blocosAtual = blocosDoMes(mesAtualObj);
+  const blocosAnterior = blocosDoMes(mesAnteriorObj);
+
+  const labels = blocosAtual.map(b => `${String(b.ini).padStart(2,'0')}-${String(b.fim).padStart(2,'0')}`);
+  const dadosAtual = blocosAtual.map(b => somaSujoBloco(mesAtualStr, b.ini, b.fim));
+  const dadosAnterior = blocosAnterior.map(b => somaSujoBloco(mesAnteriorStr, b.ini, b.fim));
+
+  if (chartBlocos) chartBlocos.destroy();
+  chartBlocos = new Chart(document.getElementById('chart-blocos'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: fmtMesLabel(mesAtualStr), data: dadosAtual, backgroundColor: 'rgba(26,111,181,0.85)', borderRadius: 6 },
+        { label: fmtMesLabel(mesAnteriorStr), data: dadosAnterior, backgroundColor: 'rgba(90,122,150,0.4)', borderRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#5a7a96', font: { family: 'Inter', size: 11 } } },
+        tooltip: { backgroundColor: '#1a2a3a', titleColor: '#fff', bodyColor: '#d0dce8' }
+      },
+      scales: {
+        x: { ticks: { color: '#5a7a96', font: { family: 'Inter', size: 11 } }, grid: { color: '#e8eef5' } },
+        y: { ticks: { color: '#5a7a96', font: { family: 'Inter', size: 11 } }, grid: { color: '#e8eef5' } }
+      }
+    }
+  });
+}
+
+function ultimos7Dias() {
+  const dias = [];
+  for (let i = 6; i >= 0; i--) {
+    dias.push(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - i));
+  }
+  return dias;
+}
+
+function renderDiaTabs() {
+  const dias = ultimos7Dias();
+  const tabsEl = document.getElementById('dia-tabs');
+  tabsEl.innerHTML = dias.map((dt, i) => `
+    <button class="dia-tab ${i === diaAtivoIdx ? 'active' : ''}" onclick="selecionarDia(${i}, this)">
+      ${dias_semana_pt[dt.getDay()]}
+      <span class="dia-sub">${objParaDataStr(dt)}</span>
+    </button>`).join('');
+}
+
+function selecionarDia(idx, btn) {
+  diaAtivoIdx = idx;
+  document.querySelectorAll('.dia-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderTabelaDia();
+}
+
+function renderTabelaDia() {
+  const dias = ultimos7Dias();
+  const dataStr = objParaDataStr(dias[diaAtivoIdx]);
+  const linhasDia = registros.filter(r => r.dataStr === dataStr).sort((a, b) => a.cliente.localeCompare(b.cliente));
+
+  const tbody = document.getElementById('detalhe-tbody');
+  if (!linhasDia.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sem dados para este dia</td></tr>';
+    return;
+  }
+
+  const totalLimpo = linhasDia.reduce((s, r) => s + r.limpo, 0);
+  const totalSujo = linhasDia.reduce((s, r) => s + r.sujo, 0);
+  const totalRelave = linhasDia.reduce((s, r) => s + r.relave, 0);
+  const totalPct = totalSujo > 0 ? (totalRelave / totalSujo) * 100 : 0;
+
+  const linhasHtml = linhasDia.map(r => `
+    <tr>
+      <td>${r.cliente}</td>
+      <td>${fmtKg(r.limpo)}</td>
+      <td>${fmtKg(r.sujo)}</td>
+      <td>${fmtKg(r.relave)}</td>
+      <td><span class="badge ${corRelave(r.pctRelave)}">${fmtPct(r.pctRelave)}</span></td>
+    </tr>`).join('');
+
+  const linhaTotal = `
+    <tr class="linha-total">
+      <td>TOTAL</td>
+      <td>${fmtKg(totalLimpo)}</td>
+      <td>${fmtKg(totalSujo)}</td>
+      <td>${fmtKg(totalRelave)}</td>
+      <td><span class="badge ${corRelave(totalPct)}">${fmtPct(totalPct)}</span></td>
+    </tr>`;
+
+  tbody.innerHTML = linhasHtml + linhaTotal;
+}
+
+async function init() {
+  try {
+    const txt = await fetch(CSV_URL).then(r => r.text());
+    const linhas = parseCSVText(txt);
+
+    registros = linhas.map(r => {
+      const dataObj = dataStrParaObj(r['Data']);
+      return {
+        cliente: r['Cliente'],
+        anoMes: r['Ano-Mês'],
+        dataStr: r['Data'],
+        dataObj,
+        limpo: toNum(r['Peso Limpo (kg)']),
+        sujo: toNum(r['Peso Sujo (kg)']),
+        relave: toNum(r['Peso Relave (kg)']),
+        pctRelave: toNum(r['% Relave']),
+      };
+    });
+
+    if (!registros.length) throw new Error('Nenhum registro encontrado em Peso_Refinado.');
+
+    hoje = registros.reduce((max, r) => r.dataObj > max ? r.dataObj : max, registros[0].dataObj);
+
+    renderDataFreshness();
+    renderCards();
+    renderBlocosSemanais();
+    renderDiaTabs();
+    renderTabelaDia();
+
+    document.getElementById('loading').style.display = 'none';
+  } catch (e) {
+    document.getElementById('loading').innerHTML = `<div style="color:#e53935;font-family:Montserrat;font-size:14px;font-weight:700;letter-spacing:2px">ERRO AO CARREGAR DADOS</div><div style="color:#5a7a96;font-size:12px;margin-top:8px">${e.message}</div>`;
+  }
+}
+init();
+</script>
+</body>
+</html>
