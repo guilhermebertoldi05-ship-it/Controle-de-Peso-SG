@@ -137,8 +137,9 @@ Mesmo padrão do Robo_RFID, por continuidade de marca:
 - **Decisão de UX**: a aba de dia ativa por padrão na tabela de detalhamento abre em "ontem" (não "hoje"), pelo mesmo motivo do card "Dia Anterior" — o robô roda de madrugada e "hoje" costuma estar vazio no momento da extração.
 - Commit e push feitos (`refinador_peso.py`, `index.html`) no repositório `Controle-de-Peso-SG`.
 
+- GitHub Pages configurado e no ar: `https://guilhermebertoldi05-ship-it.github.io/Controle-de-Peso-SG/` (branch `master`, root). Confirmado funcionando com dados reais.
+- Logo da empresa adicionada como favicon e no cabeçalho do dashboard (`logo.png`).
+- `geral_peso.bat` criado (orquestrador `peso.py` + `refinador_peso.py`) — **decisão de Guilherme: sem Task Scheduler**, ele roda manualmente todo dia (Task Scheduler não funciona com o notebook desligado, só ligado ou em suspensão com "acordar para executar").
+
 ### Pendente / em aberto
-- Configurar GitHub Pages no repositório `Controle-de-Peso-SG` (Settings → Pages → branch `master`) para publicar o `index.html` como site estático.
-- Escrever `geral_peso.bat` (orquestrador `peso.py` + `refinador_peso.py`) e agendar no Task Scheduler.
-- Confirmar horário ideal de agendamento no Task Scheduler (depende do card "Dia Anterior" ter dado completo — rodar de madrugada deixa "hoje" vazio na tabela de detalhamento, já contornado com o default em "ontem", mas vale reavaliar o horário mesmo assim).
-- Rodar `peso.py` diariamente por mais alguns dias para acumular histórico e validar as comparações de mês anterior/retrasado (hoje ainda estão zeradas, só há dados de julho/2026).
+- Rodar `peso.py` diariamente (manual, via `geral_peso.bat`) por mais alguns dias para acumular histórico e validar as comparações de mês anterior/retrasado (hoje ainda estão zeradas, só há dados de julho/2026).
