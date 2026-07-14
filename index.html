@@ -84,6 +84,7 @@
   .badge-green { background: var(--green-light); color: var(--green); }
   .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
   .th-content { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .th-content-left { align-items: flex-start; }
   .sort-btn { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 11px; padding: 2px 8px; border-radius: 4px; transition: color 0.15s, background 0.15s; line-height: 1; }
   .sort-btn:hover { color: #fff; background: rgba(255,255,255,0.15); }
   .sort-btn.active { color: #fff; background: rgba(255,255,255,0.28); }
@@ -162,14 +163,17 @@ let diaAtivoIdx = 5;
 let chartBlocos;
 
 const colunasOrdenaveis = [
-  { key: 'limpo', label: 'Peso Limpo (kg)' },
-  { key: 'sujo', label: 'Peso Sujo (kg)' },
-  { key: 'perdaRsRl', label: 'Perda RS-RL (kg)' },
-  { key: 'pctSaldo', label: '% Saldo' },
-  { key: 'relave', label: 'Peso Relave (kg)' },
-  { key: 'pctRelave', label: '% Relave' },
+  { key: 'cliente', label: 'Cliente', tipo: 'texto' },
+  { key: 'limpo', label: 'Peso Limpo (kg)', tipo: 'num' },
+  { key: 'sujo', label: 'Peso Sujo (kg)', tipo: 'num' },
+  { key: 'perdaRsRl', label: 'Perda RS-RL (kg)', tipo: 'num' },
+  { key: 'pctSaldo', label: '% Saldo', tipo: 'num' },
+  { key: 'relave', label: 'Peso Relave (kg)', tipo: 'num' },
+  { key: 'pctRelave', label: '% Relave', tipo: 'num' },
 ];
-let sortCampo = null;
+// Padrão: alfabético crescente por Cliente — o mesmo estado que o botão de
+// ordenação do Cliente restaura quando o usuário quer "voltar ao normal".
+let sortCampo = 'cliente';
 let sortDir = 'asc';
 
 function parseCSVLine(line) {
@@ -412,14 +416,14 @@ function ordenarPor(campo) {
 
 function renderTheadDetalhe() {
   const thead = document.getElementById('detalhe-thead');
-  const thsExtras = colunasOrdenaveis.map(c => `
+  const ths = colunasOrdenaveis.map((c, i) => `
     <th>
-      <div class="th-content">
+      <div class="th-content ${i === 0 ? 'th-content-left' : ''}">
         <span>${c.label}</span>
         <button class="sort-btn ${sortCampo === c.key ? 'active' : ''}" onclick="ordenarPor('${c.key}')" title="Ordenar">${iconeOrdenacao(c.key)}</button>
       </div>
     </th>`).join('');
-  thead.innerHTML = `<tr><th>Cliente</th>${thsExtras}</tr>`;
+  thead.innerHTML = `<tr>${ths}</tr>`;
 }
 
 function renderTabelaDia() {
@@ -429,10 +433,10 @@ function renderTabelaDia() {
   const dataStr = objParaDataStr(dias[diaAtivoIdx]);
   const linhasDia = registros.filter(r => r.dataStr === dataStr);
 
-  if (sortCampo) {
-    linhasDia.sort((a, b) => (a[sortCampo] - b[sortCampo]) * (sortDir === 'asc' ? 1 : -1));
+  if (sortCampo === 'cliente') {
+    linhasDia.sort((a, b) => a.cliente.localeCompare(b.cliente) * (sortDir === 'asc' ? 1 : -1));
   } else {
-    linhasDia.sort((a, b) => a.cliente.localeCompare(b.cliente));
+    linhasDia.sort((a, b) => (a[sortCampo] - b[sortCampo]) * (sortDir === 'asc' ? 1 : -1));
   }
 
   const tbody = document.getElementById('detalhe-tbody');
