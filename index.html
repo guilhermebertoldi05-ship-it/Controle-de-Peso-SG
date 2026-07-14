@@ -83,6 +83,10 @@
   .badge-red { background: var(--red-light); color: var(--red); }
   .badge-green { background: var(--green-light); color: var(--green); }
   .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+  .th-content { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .sort-btn { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 11px; padding: 2px 8px; border-radius: 4px; transition: color 0.15s, background 0.15s; line-height: 1; }
+  .sort-btn:hover { color: #fff; background: rgba(255,255,255,0.15); }
+  .sort-btn.active { color: #fff; background: rgba(255,255,255,0.28); }
   #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 20px; }
   .loader-text { font-family: 'Montserrat', sans-serif; font-size: 13px; color: var(--blue); letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
   .loader-bar { width: 200px; height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
@@ -125,7 +129,7 @@
   <div class="section-header"><h2>Blocos Semanais do Mês (Peso Sujo)</h2><div class="line"></div></div>
   <div class="charts-row">
     <div class="chart-box">
-      <div class="chart-title">Mês Atual vs. Mês Anterior, por janela de ~7 dias</div>
+      <div class="chart-title">Mês Atual vs. Mês Anterior vs. Retrasado, por janela de ~7 dias</div>
       <div class="chart-sub">Blocos: 1-7 · 8-14 · 15-21 · 22-fim</div>
       <div class="chart-wrap"><canvas id="chart-blocos"></canvas></div>
     </div>
@@ -135,7 +139,7 @@
   <div class="dia-tabs" id="dia-tabs"></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Cliente</th><th>Peso Limpo (kg)</th><th>Peso Sujo (kg)</th><th>Perda RS-RL (kg)</th><th>% Saldo</th><th>Peso Relave (kg)</th><th>% Relave</th></tr></thead>
+      <thead id="detalhe-thead"></thead>
       <tbody id="detalhe-tbody"></tbody>
     </table>
   </div>
@@ -151,10 +155,22 @@ const dias_semana_pt = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 let registros = [];
 let hoje = null;
+let ultimaExtracao = null;
 // Abre por padrão em "ontem" (índice 5 de 7) — "hoje" costuma estar praticamente
 // vazio, já que o robô roda logo após a meia-noite e o dia mal começou.
 let diaAtivoIdx = 5;
 let chartBlocos;
+
+const colunasOrdenaveis = [
+  { key: 'limpo', label: 'Peso Limpo (kg)' },
+  { key: 'sujo', label: 'Peso Sujo (kg)' },
+  { key: 'perdaRsRl', label: 'Perda RS-RL (kg)' },
+  { key: 'pctSaldo', label: '% Saldo' },
+  { key: 'relave', label: 'Peso Relave (kg)' },
+  { key: 'pctRelave', label: '% Relave' },
+];
+let sortCampo = null;
+let sortDir = 'asc';
 
 function parseCSVLine(line) {
   const result = []; let current = ''; let inQuotes = false;
@@ -195,6 +211,23 @@ function anoMesDeObj(dt) {
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
 }
 
+function dataHoraStrParaObj(str) {
+  if (!str) return new Date(0);
+  const [dataPart, horaPart] = str.split(' ');
+  const [d, m, a] = dataPart.split('/');
+  const [h, min] = (horaPart || '00:00').split(':');
+  return new Date(parseInt(a), parseInt(m) - 1, parseInt(d), parseInt(h) || 0, parseInt(min) || 0);
+}
+
+function ehHoje(dt) {
+  const agora = new Date();
+  return dt.getFullYear() === agora.getFullYear() && dt.getMonth() === agora.getMonth() && dt.getDate() === agora.getDate();
+}
+
+function fmtHora(dt) {
+  return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+}
+
 function fmtKg(v) {
   return toNum(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' kg';
 }
@@ -224,15 +257,16 @@ function renderDataFreshness() {
   }
   const agora = new Date();
   const diffDias = Math.floor((agora - hoje) / (1000 * 60 * 60 * 24));
+  const sufixoHora = (ehHoje(hoje) && ultimaExtracao) ? ` às ${fmtHora(ultimaExtracao)}` : '';
   let texto, cls;
   if (diffDias <= 1) {
-    texto = `Atualizado — último dado ${objParaDataStr(hoje)}`;
+    texto = `Atualizado — último dado ${objParaDataStr(hoje)}${sufixoHora}`;
     cls = '';
   } else if (diffDias <= 3) {
-    texto = `Último dado: ${objParaDataStr(hoje)} (${diffDias} dias atrás)`;
+    texto = `Último dado: ${objParaDataStr(hoje)}${sufixoHora} (${diffDias} dias atrás)`;
     cls = 'stale';
   } else {
-    texto = `Desatualizado — último dado ${objParaDataStr(hoje)} (${diffDias} dias atrás)`;
+    texto = `Desatualizado — último dado ${objParaDataStr(hoje)}${sufixoHora} (${diffDias} dias atrás)`;
     cls = 'very-stale';
   }
   badge.className = 'header-data-badge' + (cls ? ' ' + cls : '');
@@ -297,15 +331,19 @@ function somaSujoBloco(anoMesStr, ini, fim) {
 function renderBlocosSemanais() {
   const mesAtualObj = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const mesAnteriorObj = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const mesRetrasadoObj = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
   const mesAtualStr = anoMesDeObj(mesAtualObj);
   const mesAnteriorStr = anoMesDeObj(mesAnteriorObj);
+  const mesRetrasadoStr = anoMesDeObj(mesRetrasadoObj);
 
   const blocosAtual = blocosDoMes(mesAtualObj);
   const blocosAnterior = blocosDoMes(mesAnteriorObj);
+  const blocosRetrasado = blocosDoMes(mesRetrasadoObj);
 
-  const labels = blocosAtual.map((b, i) => `${String(b.ini).padStart(2,'0')}-${String(b.fim).padStart(2,'0')} (Semana ${i + 1})`);
+  const labels = blocosAtual.map((b, i) => [`(Semana ${i + 1})`, `${String(b.ini).padStart(2,'0')}-${String(b.fim).padStart(2,'0')}`]);
   const dadosAtual = blocosAtual.map(b => somaSujoBloco(mesAtualStr, b.ini, b.fim));
   const dadosAnterior = blocosAnterior.map(b => somaSujoBloco(mesAnteriorStr, b.ini, b.fim));
+  const dadosRetrasado = blocosRetrasado.map(b => somaSujoBloco(mesRetrasadoStr, b.ini, b.fim));
 
   if (chartBlocos) chartBlocos.destroy();
   chartBlocos = new Chart(document.getElementById('chart-blocos'), {
@@ -314,7 +352,8 @@ function renderBlocosSemanais() {
       labels,
       datasets: [
         { label: fmtMesLabel(mesAtualStr), data: dadosAtual, backgroundColor: 'rgba(26,111,181,0.85)', borderRadius: 6 },
-        { label: fmtMesLabel(mesAnteriorStr), data: dadosAnterior, backgroundColor: 'rgba(90,122,150,0.4)', borderRadius: 6 },
+        { label: fmtMesLabel(mesAnteriorStr), data: dadosAnterior, backgroundColor: 'rgba(61,168,74,0.65)', borderRadius: 6 },
+        { label: fmtMesLabel(mesRetrasadoStr), data: dadosRetrasado, backgroundColor: 'rgba(90,122,150,0.4)', borderRadius: 6 },
       ]
     },
     options: {
@@ -356,10 +395,45 @@ function selecionarDia(idx, btn) {
   renderTabelaDia();
 }
 
+function iconeOrdenacao(campo) {
+  if (sortCampo !== campo) return '⇅';
+  return sortDir === 'asc' ? '▲' : '▼';
+}
+
+function ordenarPor(campo) {
+  if (sortCampo === campo) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCampo = campo;
+    sortDir = 'asc';
+  }
+  renderTabelaDia();
+}
+
+function renderTheadDetalhe() {
+  const thead = document.getElementById('detalhe-thead');
+  const thsExtras = colunasOrdenaveis.map(c => `
+    <th>
+      <div class="th-content">
+        <span>${c.label}</span>
+        <button class="sort-btn ${sortCampo === c.key ? 'active' : ''}" onclick="ordenarPor('${c.key}')" title="Ordenar">${iconeOrdenacao(c.key)}</button>
+      </div>
+    </th>`).join('');
+  thead.innerHTML = `<tr><th>Cliente</th>${thsExtras}</tr>`;
+}
+
 function renderTabelaDia() {
+  renderTheadDetalhe();
+
   const dias = ultimos7Dias();
   const dataStr = objParaDataStr(dias[diaAtivoIdx]);
-  const linhasDia = registros.filter(r => r.dataStr === dataStr).sort((a, b) => a.cliente.localeCompare(b.cliente));
+  const linhasDia = registros.filter(r => r.dataStr === dataStr);
+
+  if (sortCampo) {
+    linhasDia.sort((a, b) => (a[sortCampo] - b[sortCampo]) * (sortDir === 'asc' ? 1 : -1));
+  } else {
+    linhasDia.sort((a, b) => a.cliente.localeCompare(b.cliente));
+  }
 
   const tbody = document.getElementById('detalhe-tbody');
   if (!linhasDia.length) {
@@ -417,12 +491,14 @@ async function init() {
         pctSaldo: toNum(r['% Saldo']),
         relave: toNum(r['Peso Relave (kg)']),
         pctRelave: toNum(r['% Relave']),
+        dataExtracaoObj: dataHoraStrParaObj(r['Data Extração']),
       };
     });
 
     if (!registros.length) throw new Error('Nenhum registro encontrado em Peso_Refinado.');
 
     hoje = registros.reduce((max, r) => r.dataObj > max ? r.dataObj : max, registros[0].dataObj);
+    ultimaExtracao = registros.reduce((max, r) => r.dataExtracaoObj > max ? r.dataExtracaoObj : max, registros[0].dataExtracaoObj);
 
     renderDataFreshness();
     renderCards();
