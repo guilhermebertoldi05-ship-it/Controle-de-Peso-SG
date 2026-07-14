@@ -135,7 +135,7 @@
   <div class="dia-tabs" id="dia-tabs"></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Cliente</th><th>Peso Limpo (kg)</th><th>Peso Sujo (kg)</th><th>Peso Relave (kg)</th><th>% Relave</th></tr></thead>
+      <thead><tr><th>Cliente</th><th>Peso Limpo (kg)</th><th>Peso Sujo (kg)</th><th>Perda RS-RL (kg)</th><th>% Saldo</th><th>Peso Relave (kg)</th><th>% Relave</th></tr></thead>
       <tbody id="detalhe-tbody"></tbody>
     </table>
   </div>
@@ -303,7 +303,7 @@ function renderBlocosSemanais() {
   const blocosAtual = blocosDoMes(mesAtualObj);
   const blocosAnterior = blocosDoMes(mesAnteriorObj);
 
-  const labels = blocosAtual.map(b => `${String(b.ini).padStart(2,'0')}-${String(b.fim).padStart(2,'0')}`);
+  const labels = blocosAtual.map((b, i) => `${String(b.ini).padStart(2,'0')}-${String(b.fim).padStart(2,'0')} (Semana ${i + 1})`);
   const dadosAtual = blocosAtual.map(b => somaSujoBloco(mesAtualStr, b.ini, b.fim));
   const dadosAnterior = blocosAnterior.map(b => somaSujoBloco(mesAnteriorStr, b.ini, b.fim));
 
@@ -363,13 +363,15 @@ function renderTabelaDia() {
 
   const tbody = document.getElementById('detalhe-tbody');
   if (!linhasDia.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sem dados para este dia</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem dados para este dia</td></tr>';
     return;
   }
 
   const totalLimpo = linhasDia.reduce((s, r) => s + r.limpo, 0);
   const totalSujo = linhasDia.reduce((s, r) => s + r.sujo, 0);
+  const totalPerdaRsRl = linhasDia.reduce((s, r) => s + r.perdaRsRl, 0);
   const totalRelave = linhasDia.reduce((s, r) => s + r.relave, 0);
+  const totalPctSaldo = totalSujo > 0 ? (totalLimpo / totalSujo) * 100 : 0;
   const totalPct = totalSujo > 0 ? (totalRelave / totalSujo) * 100 : 0;
 
   const linhasHtml = linhasDia.map(r => `
@@ -377,6 +379,8 @@ function renderTabelaDia() {
       <td>${r.cliente}</td>
       <td>${fmtKg(r.limpo)}</td>
       <td>${fmtKg(r.sujo)}</td>
+      <td>${fmtKg(r.perdaRsRl)}</td>
+      <td>${fmtPct(r.pctSaldo)}</td>
       <td>${fmtKg(r.relave)}</td>
       <td><span class="badge ${corRelave(r.pctRelave)}">${fmtPct(r.pctRelave)}</span></td>
     </tr>`).join('');
@@ -386,6 +390,8 @@ function renderTabelaDia() {
       <td>TOTAL</td>
       <td>${fmtKg(totalLimpo)}</td>
       <td>${fmtKg(totalSujo)}</td>
+      <td>${fmtKg(totalPerdaRsRl)}</td>
+      <td>${fmtPct(totalPctSaldo)}</td>
       <td>${fmtKg(totalRelave)}</td>
       <td><span class="badge ${corRelave(totalPct)}">${fmtPct(totalPct)}</span></td>
     </tr>`;
@@ -407,6 +413,8 @@ async function init() {
         dataObj,
         limpo: toNum(r['Peso Limpo (kg)']),
         sujo: toNum(r['Peso Sujo (kg)']),
+        perdaRsRl: toNum(r['Peso Perdido RS-RL (kg)']),
+        pctSaldo: toNum(r['% Saldo']),
         relave: toNum(r['Peso Relave (kg)']),
         pctRelave: toNum(r['% Relave']),
       };
