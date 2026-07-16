@@ -55,6 +55,8 @@
   .card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--blue), var(--green)); }
   .card.card-muted::after { background: linear-gradient(90deg, var(--text-muted), var(--border)); }
   .card.card-yellow::after { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+  .card.card-spacer { visibility: hidden; box-shadow: none; border: none; background: transparent; }
+  .card.card-spacer::after { display: none; }
   .card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
   .card-value { font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; line-height: 1; color: var(--blue); }
   .card-sub { font-size: 11px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
@@ -127,6 +129,9 @@
   <div class="section-header"><h2>Resumo — Peso Sujo</h2><div class="line"></div></div>
   <div class="cards-grid" id="cards-resumo"></div>
 
+  <div class="section-header"><h2>Média Diária (Peso Sujo)</h2><div class="line"></div></div>
+  <div class="cards-grid" id="cards-media"></div>
+
   <div class="section-header"><h2>Blocos Semanais do Mês (Peso Sujo)</h2><div class="line"></div></div>
   <div class="charts-row">
     <div class="chart-box">
@@ -164,8 +169,8 @@ let chartBlocos;
 
 const colunasOrdenaveis = [
   { key: 'cliente', label: 'Cliente', tipo: 'texto' },
-  { key: 'limpo', label: 'Peso Limpo (kg)', tipo: 'num' },
   { key: 'sujo', label: 'Peso Sujo (kg)', tipo: 'num' },
+  { key: 'limpo', label: 'Peso Limpo (kg)', tipo: 'num' },
   { key: 'perdaRsRl', label: 'Perda RS-RL (kg)', tipo: 'num' },
   { key: 'pctSaldo', label: '% Saldo', tipo: 'num' },
   { key: 'relave', label: 'Peso Relave (kg)', tipo: 'num' },
@@ -300,14 +305,48 @@ function renderCards() {
     `<span></span> Mês de referência: ${fmtMesLabel(mesAtualStr)}`;
 
   const cards = [
+    { label: `Peso Sujo — Dia Anterior (${diaAnteriorStr})`, valor: somaSujoPorData(diaAnteriorStr), classe: 'card-yellow' },
     { label: `Peso Sujo — ${fmtMesLabel(mesAtualStr)} (Mês Atual)`, valor: somaSujoPorAnoMes(mesAtualStr), classe: '' },
     { label: `Peso Sujo — ${fmtMesLabel(mesAnteriorStr)} (Mês Anterior)`, valor: somaSujoPorAnoMes(mesAnteriorStr), classe: 'card-muted' },
     { label: `Peso Sujo — ${fmtMesLabel(mesRetrasadoStr)} (Retrasado)`, valor: somaSujoPorAnoMes(mesRetrasadoStr), classe: 'card-muted' },
-    { label: `Peso Sujo — Dia Anterior (${diaAnteriorStr})`, valor: somaSujoPorData(diaAnteriorStr), classe: 'card-yellow' },
   ];
 
   document.getElementById('cards-resumo').innerHTML = cards.map(c => `
     <div class="card ${c.classe}">
+      <div class="card-label">${c.label}</div>
+      <div class="card-value">${fmtKg(c.valor)}</div>
+    </div>`).join('');
+}
+
+function renderMedia() {
+  const mesAtualObj = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const mesAnteriorObj = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const mesRetrasadoObj = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1);
+
+  const mesAtualStr = anoMesDeObj(mesAtualObj);
+  const mesAnteriorStr = anoMesDeObj(mesAnteriorObj);
+  const mesRetrasadoStr = anoMesDeObj(mesRetrasadoObj);
+
+  // Mês atual: mês em andamento, então divide pelo dia corrente (avança 1 dia a cada
+  // rodada). Meses fechados: divide pelo total de dias do mês (30 ou 31).
+  const diaAtualNum = hoje.getDate();
+  const diasMesAnterior = new Date(mesAnteriorObj.getFullYear(), mesAnteriorObj.getMonth() + 1, 0).getDate();
+  const diasMesRetrasado = new Date(mesRetrasadoObj.getFullYear(), mesRetrasadoObj.getMonth() + 1, 0).getDate();
+
+  const mediaAtual = somaSujoPorAnoMes(mesAtualStr) / diaAtualNum;
+  const mediaAnterior = somaSujoPorAnoMes(mesAnteriorStr) / diasMesAnterior;
+  const mediaRetrasado = somaSujoPorAnoMes(mesRetrasadoStr) / diasMesRetrasado;
+
+  const cards = [
+    { spacer: true },
+    { label: `Média Diária — ${fmtMesLabel(mesAtualStr)} (÷ ${diaAtualNum} dia${diaAtualNum > 1 ? 's' : ''})`, valor: mediaAtual, classe: '' },
+    { label: `Média Diária — ${fmtMesLabel(mesAnteriorStr)} (÷ ${diasMesAnterior} dias)`, valor: mediaAnterior, classe: 'card-muted' },
+    { label: `Média Diária — ${fmtMesLabel(mesRetrasadoStr)} (÷ ${diasMesRetrasado} dias)`, valor: mediaRetrasado, classe: 'card-muted' },
+  ];
+
+  document.getElementById('cards-media').innerHTML = cards.map(c => c.spacer
+    ? `<div class="card card-spacer"></div>`
+    : `<div class="card ${c.classe}">
       <div class="card-label">${c.label}</div>
       <div class="card-value">${fmtKg(c.valor)}</div>
     </div>`).join('');
@@ -331,6 +370,28 @@ function somaSujoBloco(anoMesStr, ini, fim) {
     .filter(r => { const dia = r.dataObj.getDate(); return dia >= ini && dia <= fim; })
     .reduce((s, r) => s + r.sujo, 0);
 }
+
+const kgLabelPlugin = {
+  id: 'kgLabelPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    chart.data.datasets.forEach((dataset, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden) return;
+      meta.data.forEach((bar, index) => {
+        const valor = toNum(dataset.data[index]);
+        if (!valor) return;
+        ctx.save();
+        ctx.font = "700 10px Inter, sans-serif";
+        ctx.fillStyle = '#5a7a96';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg', bar.x, bar.y - 4);
+        ctx.restore();
+      });
+    });
+  }
+};
 
 function renderBlocosSemanais() {
   const mesAtualObj = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -360,8 +421,10 @@ function renderBlocosSemanais() {
         { label: fmtMesLabel(mesRetrasadoStr), data: dadosRetrasado, backgroundColor: 'rgba(90,122,150,0.4)', borderRadius: 6 },
       ]
     },
+    plugins: [kgLabelPlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 16 } },
       plugins: {
         legend: { display: true, position: 'top', labels: { color: '#5a7a96', font: { family: 'Inter', size: 11 } } },
         tooltip: { backgroundColor: '#1a2a3a', titleColor: '#fff', bodyColor: '#d0dce8' }
@@ -455,8 +518,8 @@ function renderTabelaDia() {
   const linhasHtml = linhasDia.map(r => `
     <tr>
       <td>${r.cliente}</td>
-      <td>${fmtKg(r.limpo)}</td>
       <td>${fmtKg(r.sujo)}</td>
+      <td>${fmtKg(r.limpo)}</td>
       <td>${fmtKg(r.perdaRsRl)}</td>
       <td>${fmtPct(r.pctSaldo)}</td>
       <td>${fmtKg(r.relave)}</td>
@@ -466,8 +529,8 @@ function renderTabelaDia() {
   const linhaTotal = `
     <tr class="linha-total">
       <td>TOTAL</td>
-      <td>${fmtKg(totalLimpo)}</td>
       <td>${fmtKg(totalSujo)}</td>
+      <td>${fmtKg(totalLimpo)}</td>
       <td>${fmtKg(totalPerdaRsRl)}</td>
       <td>${fmtPct(totalPctSaldo)}</td>
       <td>${fmtKg(totalRelave)}</td>
@@ -506,6 +569,7 @@ async function init() {
 
     renderDataFreshness();
     renderCards();
+    renderMedia();
     renderBlocosSemanais();
     renderDiaTabs();
     renderTabelaDia();
