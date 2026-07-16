@@ -1,1 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lançamento de Relave - São Geraldo</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+  // Aplica o tema salvo antes da primeira pintura, pra evitar flash de tela clara.
+  (function() {
+    try {
+      if (localStorage.getItem('peso-rfid-theme') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8eef5;
+    --border: #d0dce8;
+    --blue: #1a6fb5;
+    --blue-dark: #0d4f8a;
+    --blue-light: #e8f2fc;
+    --green: #3da84a;
+    --green-light: #e6f7e8;
+    --text: #1a2a3a;
+    --text-muted: #5a7a96;
+    --red: #e53935;
+    --red-light: #fdecea;
+    --yellow: #f5a623;
+    --yellow-light: #fef8ec;
+    --orange: #f07130;
+    --shadow: 0 2px 12px rgba(26,111,181,0.10);
+    --shadow-md: 0 4px 24px rgba(26,111,181,0.13);
+    --radius: 14px;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1621;
+    --surface: #16212f;
+    --surface2: #1c2937;
+    --border: #2a3b4d;
+    --blue-light: rgba(26,111,181,0.18);
+    --green-light: rgba(61,168,74,0.18);
+    --red-light: rgba(229,57,53,0.18);
+    --yellow-light: rgba(245,166,35,0.18);
+    --text: #e8eef5;
+    --text-muted: #93a9c0;
+    --shadow: 0 2px 12px rgba(0,0,0,0.35);
+    --shadow-md: 0 4px 24px rgba(0,0,0,0.45);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { position: relative; z-index: 10; background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 72px; box-shadow: var(--shadow); }
+  .header-logo { display: flex; align-items: center; gap: 14px; }
+  .header-logo-mark { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+  .header-logo-divider { width: 2px; height: 36px; background: linear-gradient(180deg, var(--blue), var(--green)); border-radius: 2px; }
+  .header-title h1 { font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 800; color: var(--blue-dark); letter-spacing: -0.3px; line-height: 1.2; }
+  .header-title p { font-size: 10px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .theme-toggle-btn { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, transform 0.2s, color 0.2s; }
+  .theme-toggle-btn:hover { background: var(--blue-light); color: var(--blue); transform: scale(1.06); }
+  main { position: relative; z-index: 10; padding: 28px 40px; max-width: 1200px; margin: 0 auto; }
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .section-header h2 { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 800; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+  .section-header .line { flex: 1; height: 1px; background: var(--border); }
+  .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 28px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 26px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+  .card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--blue), var(--green)); }
+  .card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
+  .card-value { font-family: 'Montserrat', sans-serif; font-size: 30px; font-weight: 900; line-height: 1; color: var(--blue); }
+  .card-sub { font-size: 11px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+  .dia-tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 1px solid var(--border); background: var(--surface2); flex-wrap: wrap; border-radius: var(--radius) var(--radius) 0 0; }
+  .dia-tab { padding: 10px 18px; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; border: none; background: transparent; border-bottom: 2px solid transparent; transition: all 0.2s; position: relative; bottom: -1px; text-align: center; }
+  .dia-tab .dia-sub { display: block; font-weight: 500; opacity: 0.8; font-size: 9px; margin-top: 2px; }
+  .dia-tab:hover { color: var(--blue); }
+  .dia-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface2); padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .filtro-input { flex: 1; max-width: 320px; padding: 9px 14px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px; outline: none; }
+  .filtro-input:focus { border-color: var(--blue); }
+  .contador-lancados { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 28px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: linear-gradient(135deg, var(--blue-dark), var(--blue)); }
+  th { padding: 14px 16px; text-align: center; font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.9); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--blue-light); }
+  tbody tr.linha-lancada { background: var(--green-light); }
+  tbody tr.linha-lancada:hover { background: var(--green-light); }
+  td { padding: 10px 16px; color: var(--text); font-weight: 500; text-align: center; }
+  .peso-sujo-ref { color: var(--text-muted); font-size: 12px; }
+  .relave-input { width: 110px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; text-align: center; outline: none; transition: border-color 0.15s; }
+  .relave-input:focus { border-color: var(--blue); }
+  .relave-input.salvando { opacity: 0.5; }
+  .status-cell { font-size: 10px; color: var(--text-muted); min-width: 60px; display: inline-block; }
+  .status-cell.ok { color: var(--green); font-weight: 700; }
+  .status-cell.erro { color: var(--red); font-weight: 700; }
+  .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+  .badge-muted { background: var(--surface2); color: var(--text-muted); }
+  .empty-state { padding: 48px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .banner-erro { background: var(--red-light); color: var(--red); border: 1px solid rgba(229,57,53,0.3); border-radius: var(--radius); padding: 14px 18px; font-size: 12px; font-weight: 600; margin-bottom: 20px; display: none; }
+  #gate { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; padding: 20px; }
+  #gate .gate-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 40px; box-shadow: var(--shadow-md); text-align: center; width: 100%; max-width: 340px; }
+  #gate .gate-box img { width: 48px; height: 48px; margin-bottom: 14px; }
+  #gate .gate-box h2 { font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  #gate .gate-box p { font-size: 11px; color: var(--text-muted); margin-bottom: 18px; }
+  #gate input { width: 100%; padding: 12px 16px; border-radius: 100px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; text-align: center; outline: none; margin-bottom: 12px; }
+  #gate input:focus { border-color: var(--blue); }
+  #gate button { width: 100%; padding: 12px 16px; border-radius: 100px; border: none; background: var(--blue); color: #fff; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; transition: background 0.2s; }
+  #gate button:hover { background: var(--blue-dark); }
+  #gate .gate-erro { color: var(--red); font-size: 11px; font-weight: 600; margin-top: 10px; min-height: 14px; }
+  #app { display: none; }
+  @media (max-width: 700px) {
+    header { padding: 0 20px; } main { padding: 20px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .filtro-input { max-width: none; }
+  }
+</style>
+</head>
+<body>
 
+<div id="gate">
+  <div class="gate-box">
+    <img src="logo.png" alt="São Geraldo Service">
+    <h2>Lançamento de Relave</h2>
+    <p>Digite a senha pra continuar</p>
+    <input type="password" id="gate-senha" placeholder="Senha" autocomplete="off">
+    <button onclick="tentarEntrar()">Entrar</button>
+    <div class="gate-erro" id="gate-erro"></div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="header-logo">
+      <img class="header-logo-mark" src="logo.png" alt="São Geraldo Service">
+      <div class="header-logo-divider"></div>
+      <div class="header-title">
+        <h1>São Geraldo Service</h1>
+        <p>Lançamento de Relave</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">🌙</button>
+    </div>
+  </header>
+  <main>
+    <div class="banner-erro" id="banner-erro"></div>
+
+    <div class="section-header"><h2>Totais do Dia</h2><div class="line"></div></div>
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-label">Total Relave Lançado</div>
+        <div class="card-value" id="stat-total">0,0 kg</div>
+        <div class="card-sub" id="stat-contagem">0 de 0 clientes lançados</div>
+      </div>
+      <div class="card">
+        <div class="card-label">% Relave Médio</div>
+        <div class="card-value" id="stat-pct">0,00%</div>
+        <div class="card-sub">Meta da empresa: ≤ 3,0%</div>
+      </div>
+    </div>
+
+    <div class="section-header"><h2>Lançar Peso de Relave por Cliente</h2><div class="line"></div></div>
+    <div class="dia-tabs" id="dia-tabs"></div>
+    <div class="toolbar">
+      <input type="text" class="filtro-input" id="filtro-cliente" placeholder="Buscar cliente..." oninput="renderTabela()">
+      <span class="contador-lancados" id="contador-toolbar"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Cliente</th>
+            <th>Peso Sujo (kg)</th>
+            <th>Peso Relave (kg)</th>
+            <th>% Relave</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-body"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+// Depois de implantar o Apps Script como App da Web, cole a URL (termina em /exec) aqui:
+const APPS_SCRIPT_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
+
+const dias_semana_pt = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let senhaAtual = '';
+let diaAtivoIdx = 6; // último dos 7 (hoje) — o colaborador lança o relave do dia em tempo real.
+let resumoAtual = null;
+let carregando = false;
+
+function objParaDataStr(dt) {
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+}
+
+function ultimos7Dias() {
+  const hoje = new Date();
+  const dias = [];
+  for (let i = 6; i >= 0; i--) {
+    dias.push(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - i));
+  }
+  return dias;
+}
+
+function fmtKg(v) {
+  return (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' kg';
+}
+
+function fmtPct(v) {
+  return (v || 0).toFixed(2).replace('.', ',') + '%';
+}
+
+function corRelave(pct) {
+  if (pct === null || pct === undefined) return 'badge-muted';
+  if (pct <= 3) return 'badge-green';
+  if (pct <= 3.5) return 'badge-yellow';
+  return 'badge-red';
+}
+
+function aplicarTema(tema) {
+  if (tema === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = tema === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const atual = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const novo = atual === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem('peso-rfid-theme', novo); } catch (e) {}
+  aplicarTema(novo);
+}
+
+function mostrarErro(msg) {
+  const banner = document.getElementById('banner-erro');
+  if (!msg) { banner.style.display = 'none'; banner.textContent = ''; return; }
+  banner.textContent = msg;
+  banner.style.display = 'block';
+}
+
+async function chamarApi(params, opcoesPost) {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('COLE_AQUI') !== -1) {
+    throw new Error('APPS_SCRIPT_URL ainda não foi configurada no relave.html.');
+  }
+  let url = APPS_SCRIPT_URL;
+  let resp;
+  if (opcoesPost) {
+    resp = await fetch(url, { method: 'POST', body: JSON.stringify(opcoesPost) });
+  } else {
+    const qs = new URLSearchParams(params).toString();
+    resp = await fetch(`${url}?${qs}`);
+  }
+  const json = await resp.json();
+  if (json.erro) throw new Error(json.erro);
+  return json;
+}
+
+async function tentarEntrar() {
+  const input = document.getElementById('gate-senha');
+  const erroEl = document.getElementById('gate-erro');
+  const senha = input.value.trim();
+  if (!senha) { erroEl.textContent = 'Digite a senha.'; return; }
+  erroEl.textContent = 'Verificando...';
+  try {
+    const dias = ultimos7Dias();
+    const dia = objParaDataStr(dias[diaAtivoIdx]);
+    const resumo = await chamarApi({ senha, dia });
+    senhaAtual = senha;
+    try { sessionStorage.setItem('relave-senha', senha); } catch (e) {}
+    resumoAtual = resumo;
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderDiaTabs();
+    renderTudo();
+  } catch (e) {
+    erroEl.textContent = e.message || 'Senha incorreta.';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('gate-senha').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tentarEntrar();
+  });
+  const salva = (() => { try { return sessionStorage.getItem('relave-senha'); } catch (e) { return null; } })();
+  if (salva) {
+    document.getElementById('gate-senha').value = salva;
+    tentarEntrar();
+  }
+});
+
+function renderDiaTabs() {
+  const dias = ultimos7Dias();
+  const tabsEl = document.getElementById('dia-tabs');
+  const hoje = new Date();
+  tabsEl.innerHTML = dias.map((dt, i) => {
+    const ehHoje = dt.toDateString() === hoje.toDateString();
+    return `
+    <button class="dia-tab ${i === diaAtivoIdx ? 'active' : ''}" onclick="selecionarDia(${i})">
+      ${ehHoje ? 'Hoje' : dias_semana_pt[dt.getDay()]}
+      <span class="dia-sub">${objParaDataStr(dt)}</span>
+    </button>`;
+  }).join('');
+}
+
+async function selecionarDia(idx) {
+  diaAtivoIdx = idx;
+  renderDiaTabs();
+  await carregarDia();
+}
+
+async function carregarDia() {
+  const dias = ultimos7Dias();
+  const dia = objParaDataStr(dias[diaAtivoIdx]);
+  carregando = true;
+  mostrarErro('');
+  document.getElementById('tabela-body').innerHTML = '<tr><td colspan="4" class="empty-state">Carregando...</td></tr>';
+  try {
+    resumoAtual = await chamarApi({ senha: senhaAtual, dia });
+    renderTudo();
+  } catch (e) {
+    mostrarErro('Erro ao carregar: ' + e.message);
+    document.getElementById('tabela-body').innerHTML = '';
+  } finally {
+    carregando = false;
+  }
+}
+
+function renderTudo() {
+  renderStats();
+  renderTabela();
+}
+
+function renderStats() {
+  if (!resumoAtual) return;
+  document.getElementById('stat-total').textContent = fmtKg(resumoAtual.totalRelaveLancado);
+  document.getElementById('stat-pct').textContent = fmtPct(resumoAtual.pctMedioDia);
+  const texto = `${resumoAtual.clientesLancados} de ${resumoAtual.totalClientes} clientes lançados`;
+  document.getElementById('stat-contagem').textContent = texto;
+  document.getElementById('contador-toolbar').textContent = texto;
+}
+
+function renderTabela() {
+  const tbody = document.getElementById('tabela-body');
+  if (!resumoAtual) return;
+
+  const filtro = document.getElementById('filtro-cliente').value.trim().toLowerCase();
+  const clientes = resumoAtual.clientes.filter(c => c.cliente.toLowerCase().includes(filtro));
+
+  if (!clientes.length) {
+    const msg = resumoAtual.clientes.length === 0
+      ? 'Nenhum cliente com peso sujo registrado nesse dia ainda — rode o robô (peso.py) primeiro.'
+      : 'Nenhum cliente encontrado com esse filtro.';
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">${msg}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = clientes.map(c => `
+    <tr class="${c.lancado ? 'linha-lancada' : ''}" data-cliente="${encodeURIComponent(c.cliente)}">
+      <td>${c.cliente}</td>
+      <td class="peso-sujo-ref">${fmtKg(c.sujo)}</td>
+      <td>
+        <input type="number" class="relave-input" min="0" step="0.1" value="${c.lancado ? c.relave : ''}"
+          placeholder="0,0" onchange="salvarLancamento(this, '${c.cliente.replace(/'/g, "\\'")}')">
+      </td>
+      <td><span class="badge pct-badge ${corRelave(c.pctRelave)}">${c.pctRelave === null ? '—' : fmtPct(c.pctRelave)}</span></td>
+    </tr>`).join('');
+}
+
+async function salvarLancamento(input, cliente) {
+  const valor = parseFloat(input.value.replace(',', '.'));
+  if (isNaN(valor) || valor < 0) {
+    mostrarErro('Peso inválido para ' + cliente + '.');
+    return;
+  }
+  const dias = ultimos7Dias();
+  const dia = objParaDataStr(dias[diaAtivoIdx]);
+  input.classList.add('salvando');
+  input.disabled = true;
+  try {
+    resumoAtual = await chamarApi(null, { senha: senhaAtual, dia, cliente, pesoRelave: valor });
+    mostrarErro('');
+    renderStats();
+    renderTabela();
+  } catch (e) {
+    mostrarErro('Erro ao salvar ' + cliente + ': ' + e.message);
+  } finally {
+    input.classList.remove('salvando');
+    input.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
