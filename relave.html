@@ -93,7 +93,6 @@
   tbody tr.linha-lancada { background: var(--green-light); }
   tbody tr.linha-lancada:hover { background: var(--green-light); }
   td { padding: 10px 16px; color: var(--text); font-weight: 500; text-align: center; }
-  .peso-sujo-ref { color: var(--text-muted); font-size: 12px; }
   .relave-input { width: 110px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; text-align: center; outline: none; transition: border-color 0.15s; }
   .relave-input:focus { border-color: var(--blue); }
   .relave-input.salvando { opacity: 0.5; }
@@ -181,7 +180,6 @@
         <thead>
           <tr>
             <th style="text-align:left">Cliente</th>
-            <th>Peso Sujo (kg)</th>
             <th>Peso Relave (kg)</th>
             <th>% Relave</th>
           </tr>
@@ -229,6 +227,15 @@ function corRelave(pct) {
   if (pct <= 3) return 'badge-green';
   if (pct <= 3.5) return 'badge-yellow';
   return 'badge-red';
+}
+
+// Diferencia "ainda não lançou" de "já lançou, mas o robô ainda não capturou o peso
+// sujo desse dia" — nesse segundo caso a % aparece sozinha assim que o sujo existir,
+// sem o colaborador precisar fazer nada.
+function textoBadge(c) {
+  if (c.pctRelave !== null) return fmtPct(c.pctRelave);
+  if (c.lancado && !c.sujoDisponivel) return 'Aguard. sujo';
+  return '—';
 }
 
 function aplicarTema(tema) {
@@ -289,34 +296,9 @@ async function tentarEntrar() {
     document.getElementById('app').style.display = 'block';
     renderDiaTabs();
     renderTudo();
-    // "Hoje" costuma estar vazio até o robô rodar (o sistema legado preenche o peso
-    // do dia com atraso) — nesse caso, volta automaticamente pro dia mais recente
-    // que já tem dados, pra tela não abrir "vazia" pro colaborador.
-    if (!resumo.clientes.length) { await voltarParaDiaComDados(); }
   } catch (e) {
     erroEl.textContent = e.message || 'Senha incorreta.';
   }
-}
-
-async function voltarParaDiaComDados() {
-  const dias = ultimos7Dias();
-  const tbody = document.getElementById('tabela-body');
-  for (let i = diaAtivoIdx - 1; i >= 0; i--) {
-    const dia = objParaDataStr(dias[i]);
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Hoje ainda não tem dados de peso — procurando o dia mais recente (${dia})...</td></tr>`;
-    try {
-      const resumo = await chamarApi({ senha: senhaAtual, dia });
-      if (resumo.clientes.length) {
-        diaAtivoIdx = i;
-        resumoAtual = resumo;
-        renderDiaTabs();
-        renderTudo();
-        return;
-      }
-    } catch (e) { break; }
-  }
-  // Nenhum dos 7 dias tem dados — volta a mensagem padrão do dia original.
-  renderTudo();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -355,7 +337,7 @@ async function carregarDia() {
   const dia = objParaDataStr(dias[diaAtivoIdx]);
   carregando = true;
   mostrarErro('');
-  document.getElementById('tabela-body').innerHTML = '<tr><td colspan="4" class="empty-state">Carregando...</td></tr>';
+  document.getElementById('tabela-body').innerHTML = '<tr><td colspan="3" class="empty-state">Carregando...</td></tr>';
   try {
     resumoAtual = await chamarApi({ senha: senhaAtual, dia });
     renderTudo();
@@ -390,22 +372,21 @@ function renderTabela() {
 
   if (!clientes.length) {
     const msg = resumoAtual.clientes.length === 0
-      ? 'Esse dia ainda não tem dados de peso sujo — eles aparecem aqui depois que o robô de peso roda e captura o dia.'
+      ? 'Nenhum cliente encontrado ainda — rode o robô (peso.py) pelo menos uma vez pra popular a lista de clientes.'
       : 'Nenhum cliente encontrado com esse filtro.';
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">${msg}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = clientes.map(c => `
     <tr class="${c.lancado ? 'linha-lancada' : ''}" data-cliente="${encodeURIComponent(c.cliente)}">
       <td>${c.cliente}</td>
-      <td class="peso-sujo-ref">${fmtKg(c.sujo)}</td>
       <td>
         <input type="number" class="relave-input" min="0" step="0.1" value="${c.lancado ? c.relave : ''}"
           data-valor-original="${c.lancado ? c.relave : ''}"
           placeholder="0,0" onchange="salvarLancamento(this, '${c.cliente.replace(/'/g, "\\'")}')">
       </td>
-      <td><span class="badge pct-badge ${corRelave(c.pctRelave)}">${c.pctRelave === null ? '—' : fmtPct(c.pctRelave)}</span></td>
+      <td><span class="badge pct-badge ${corRelave(c.pctRelave)}">${textoBadge(c)}</span></td>
     </tr>`).join('');
 }
 
