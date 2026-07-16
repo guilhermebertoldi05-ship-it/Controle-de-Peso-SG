@@ -402,6 +402,7 @@ function renderTabela() {
       <td class="peso-sujo-ref">${fmtKg(c.sujo)}</td>
       <td>
         <input type="number" class="relave-input" min="0" step="0.1" value="${c.lancado ? c.relave : ''}"
+          data-valor-original="${c.lancado ? c.relave : ''}"
           placeholder="0,0" onchange="salvarLancamento(this, '${c.cliente.replace(/'/g, "\\'")}')">
       </td>
       <td><span class="badge pct-badge ${corRelave(c.pctRelave)}">${c.pctRelave === null ? '—' : fmtPct(c.pctRelave)}</span></td>
@@ -409,13 +410,35 @@ function renderTabela() {
 }
 
 async function salvarLancamento(input, cliente) {
-  const valor = parseFloat(input.value.replace(',', '.'));
-  if (isNaN(valor) || valor < 0) {
-    mostrarErro('Peso inválido para ' + cliente + '.');
-    return;
-  }
   const dias = ultimos7Dias();
-  const dia = objParaDataStr(dias[diaAtivoIdx]);
+  const diaObj = dias[diaAtivoIdx];
+  const dia = objParaDataStr(diaObj);
+  const ehHojeReal = diaObj.toDateString() === new Date().toDateString();
+
+  // Campo vazio = colaborador apagou o valor -> remove o lançamento (volta pro
+  // estado "não lançado"). Diferente de lançar 0kg, que é um valor válido.
+  const bruto = input.value.trim();
+  let valor = null;
+  if (bruto !== '') {
+    valor = parseFloat(bruto.replace(',', '.'));
+    if (isNaN(valor) || valor < 0) {
+      mostrarErro('Peso inválido para ' + cliente + '.');
+      input.value = input.dataset.valorOriginal || '';
+      return;
+    }
+  }
+
+  if (!ehHojeReal) {
+    const acao = valor === null
+      ? `remover o lançamento de relave de "${cliente}"`
+      : `lançar ${valor.toString().replace('.', ',')} kg de relave para "${cliente}"`;
+    const confirmar = confirm(`Você não está no dia atual — está vendo ${dia}.\n\nTem certeza que quer ${acao} nesse dia?`);
+    if (!confirmar) {
+      input.value = input.dataset.valorOriginal || '';
+      return;
+    }
+  }
+
   input.classList.add('salvando');
   input.disabled = true;
   try {
@@ -425,6 +448,7 @@ async function salvarLancamento(input, cliente) {
     renderTabela();
   } catch (e) {
     mostrarErro('Erro ao salvar ' + cliente + ': ' + e.message);
+    renderTabela();
   } finally {
     input.classList.remove('salvando');
     input.disabled = false;
