@@ -194,7 +194,7 @@
 
 <script>
 // Depois de implantar o Apps Script como App da Web, cole a URL (termina em /exec) aqui:
-const APPS_SCRIPT_URL = 'COLE_AQUI_A_URL_DO_APPS_SCRIPT';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnHZcqnbv51JVHVgqf2UJ0gnEyspF8nQ_VYM_WLCo-0T6DAHgVe4eOTsPcMbd88tQ/exec';
 
 const dias_semana_pt = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
@@ -289,9 +289,34 @@ async function tentarEntrar() {
     document.getElementById('app').style.display = 'block';
     renderDiaTabs();
     renderTudo();
+    // "Hoje" costuma estar vazio até o robô rodar (o sistema legado preenche o peso
+    // do dia com atraso) — nesse caso, volta automaticamente pro dia mais recente
+    // que já tem dados, pra tela não abrir "vazia" pro colaborador.
+    if (!resumo.clientes.length) { await voltarParaDiaComDados(); }
   } catch (e) {
     erroEl.textContent = e.message || 'Senha incorreta.';
   }
+}
+
+async function voltarParaDiaComDados() {
+  const dias = ultimos7Dias();
+  const tbody = document.getElementById('tabela-body');
+  for (let i = diaAtivoIdx - 1; i >= 0; i--) {
+    const dia = objParaDataStr(dias[i]);
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Hoje ainda não tem dados de peso — procurando o dia mais recente (${dia})...</td></tr>`;
+    try {
+      const resumo = await chamarApi({ senha: senhaAtual, dia });
+      if (resumo.clientes.length) {
+        diaAtivoIdx = i;
+        resumoAtual = resumo;
+        renderDiaTabs();
+        renderTudo();
+        return;
+      }
+    } catch (e) { break; }
+  }
+  // Nenhum dos 7 dias tem dados — volta a mensagem padrão do dia original.
+  renderTudo();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -365,7 +390,7 @@ function renderTabela() {
 
   if (!clientes.length) {
     const msg = resumoAtual.clientes.length === 0
-      ? 'Nenhum cliente com peso sujo registrado nesse dia ainda — rode o robô (peso.py) primeiro.'
+      ? 'Esse dia ainda não tem dados de peso sujo — eles aparecem aqui depois que o robô de peso roda e captura o dia.'
       : 'Nenhum cliente encontrado com esse filtro.';
     tbody.innerHTML = `<tr><td colspan="4" class="empty-state">${msg}</td></tr>`;
     return;
